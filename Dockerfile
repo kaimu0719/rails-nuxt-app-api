@@ -56,4 +56,4 @@ COPY . ./
 
 # Define the command you want to run in the container
 # b ... Bind to all interfaces
-CMD ["rails", "server", "-b", "0.0.0.0"]
+# CMD ["rails", "server", "-b", "0.0.0.0"]
