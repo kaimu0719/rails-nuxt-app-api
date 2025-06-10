@@ -34,3 +34,4 @@
 # original
 /.ash_history
 /.irb_history
+/.psql_history
