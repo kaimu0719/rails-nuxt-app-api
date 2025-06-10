@@ -21,6 +21,9 @@ module App
     config.time_zone = ENV['TZ'] # 表示用のタイムゾーンを環境変数から取得
     config.active_record.default_timezone = :utc # データベースに保存する際のタイムゾーンをUTCに設定
 
+    # デフォルトのロケールを日本語に設定
+    config.i18n.default_locale = :ja
+
     # Only loads a smaller set of middleware suitable for API only apps.
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
