@@ -22,6 +22,7 @@ module App
     config.active_record.default_timezone = :utc # データベースに保存する際のタイムゾーンをUTCに設定
 
     # デフォルトのロケールを日本語に設定
+    # config/locales/ja.ymlが読み込まれるようにする。
     config.i18n.default_locale = :ja
 
     # Only loads a smaller set of middleware suitable for API only apps.
