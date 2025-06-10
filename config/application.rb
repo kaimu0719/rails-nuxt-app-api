@@ -9,6 +9,7 @@ Bundler.require(*Rails.groups)
 module App
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
+    # https://api.rubyonrails.org/v8.0/classes/Rails/Application/Configuration.html#method-i-load_defaults
     config.load_defaults 8.0
 
     # Please, add to the `ignore` list any other `lib` subdirectories that do
@@ -21,8 +22,10 @@ module App
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
     #
-    # config.time_zone = "Central Time (US & Canada)"
-    # config.eager_load_paths << Rails.root.join("extras")
+
+    # データベースに保存する際のタイムゾーンをutcに設定することで、一貫した時間管理を行う。
+    config.time_zone = ENV['TZ'] # 表示用のタイムゾーンを環境変数から取得
+    config.active_record.default_timezone = :utc # データベースに保存する際のタイムゾーンをUTCに設定
 
     # Only loads a smaller set of middleware suitable for API only apps.
     # Middleware like session, flash, cookies can be added back manually.
