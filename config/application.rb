@@ -17,12 +17,6 @@ module App
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
-    # Configuration for the application, engines, and railties goes here.
-    #
-    # These settings can be overridden in specific environments using the files
-    # in config/environments, which are processed later.
-    #
-
     # データベースに保存する際のタイムゾーンをutcに設定することで、一貫した時間管理を行う。
     config.time_zone = ENV['TZ'] # 表示用のタイムゾーンを環境変数から取得
     config.active_record.default_timezone = :utc # データベースに保存する際のタイムゾーンをUTCに設定
