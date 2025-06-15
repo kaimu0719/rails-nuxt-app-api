@@ -15,14 +15,13 @@ class User < ApplicationRecord
   
   validates :email,
             presence: true, # メールアドレスは必須
-            format: { with: URI::MailTo::EMAIL_REGEXP }, # メールアドレスの形式をチェック
+            format: { with: URI::MailTo::EMAIL_REGEXP, allow_blank: true }, # メールアドレスの形式をチェック
             uniqueness: {
               case_sensitive: false, # 大文字小文字を区別しない
               conditions: -> { where(activated: true) } # アクティブなユーザーのみ一意性をチェック
             }
   
   validates :password,
-            presence: true, # パスワードは必須
             length: { minimum: 8 }, # パスワードの最小文字数は8文字
             allow_nil: true # nilの場合はバリデーションをスキップ
 end
