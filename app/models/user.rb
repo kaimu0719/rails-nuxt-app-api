@@ -24,4 +24,14 @@ class User < ApplicationRecord
   validates :password,
             length: { minimum: 8 }, # パスワードの最小文字数は8文字
             allow_nil: true # nilの場合はバリデーションをスキップ
+  
+  # リフレッシュトークンのJWT IDを記憶する
+  def remember(jti)
+    update!(refresh_jti: jti)
+  end
+
+  # リフレッシュトークンのJWT IDを削除する
+  def forget
+    update!(refresh_jti: nil)
+  end
 end
