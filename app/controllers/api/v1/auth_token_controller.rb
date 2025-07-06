@@ -62,11 +62,10 @@ class Api::V1::AuthTokenController < ApplicationController
 
     # ログインユーザーが居ない、もしくはpasswordが一致しない場合404を返す
     def authenticate
-      # ログインユーザーがnilの場合と、パスワードが一致しない場合は、
-      # 404 Not Foundエラーが発生し、ユーザーが見つからないことを示す
-      unless login_user.present? &&
-          # authenticateメソッドは、bcrypt gemによって提供されるメソッド
-          login_user.authenticate(auth_params[:password])
+      # authenticateメソッドは、bcrypt gemによって提供されるメソッド
+      unless login_user.present? && login_user.authenticate(auth_params[:password])
+        # ログインユーザーがnilの場合と、パスワードが一致しない場合は、
+        # 404 Not Foundエラーが発生し、ユーザーが見つからないことを示す
         raise UserAuth.not_found_exception_class
       end
    end
