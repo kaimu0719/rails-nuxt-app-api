@@ -1,4 +1,5 @@
 class User < ApplicationRecord
+  include TokenGenerateService
   # gem bcrypt
   # 1. パスワードをハッシュ化して暗号化する
   # 2. password_digestをpasswordに設定する
@@ -33,5 +34,10 @@ class User < ApplicationRecord
   # リフレッシュトークンのJWT IDを削除する
   def forget
     update!(refresh_jti: nil)
+  end
+
+  # JSONレスポンスのシリアライザ
+  def response_json(payload = {})
+    as_json(only: [:id, :name]).merge(payload).with_indifferent_access
   end
 end
