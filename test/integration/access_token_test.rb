@@ -1,4 +1,3 @@
-# api/test/integration/access_token_test.rb
 require "test_helper"
 
 class AccessTokenTest < ActionDispatch::IntegrationTest
