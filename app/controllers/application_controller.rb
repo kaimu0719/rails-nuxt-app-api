@@ -3,20 +3,28 @@ class ApplicationController < ActionController::API
   #【cookiesメソッドについて】https://api.rubyonrails.org/classes/ActionDispatch/Cookies.html
   include ActionController::Cookies
 
-  # 認可を行う
-  include UserAuthenticateService
-
-  # CSRF対策
-  # 全てのアクションが実行される前に、リクエストヘッダーが、
-  # X-Requested-With: 'XMLHttpRequest' であることを確認する
-  # XMLHttpRequestリクエストでない場合は、403 Forbiddenを返す
-  #
-  # これで得られるCSRF対策
-  # - 悪意のあるサイトからのリクエストを防ぐ（別オリジンのサイトからはカスタムヘッダーを送信できないため）
-  before_action :xhr_request?
+  before_action :require_login, :xhr_request?
 
   private
-    # XHRリクエストかどうかを確認する
+
+    def current_user
+      current_user ||= User.from_access_token(request.headers["Authorization"]&.split&.last)
+      rescue UserAuth.not_found_exception_class, JWT::DecodeError, JWT::EncodeError
+      nil
+    end
+
+    def logged_in?
+      (current_user.present? && current_user.activated?)
+    end
+
+    def require_login
+      if !logged_in?
+        cookies.delete(UserAuth.session_key)
+
+        head(:unauthorized)
+      end
+    end
+
     def xhr_request?
       # リクエストヘッダー X-Requested-With: 'XMLHttpRequest' の存在を判定
       return if request.xml_http_request?
