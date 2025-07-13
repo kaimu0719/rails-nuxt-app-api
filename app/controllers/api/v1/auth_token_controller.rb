@@ -1,4 +1,6 @@
 class Api::V1::AuthTokenController < ApplicationController
+  skip_before_action :require_login, only: [:create, :refresh, :destroy]
+
   include UserSessionizeService
 
   # 404エラーが発生した場合にヘッダーのみを返す
