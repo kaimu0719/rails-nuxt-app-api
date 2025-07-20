@@ -19,14 +19,6 @@ class Api::V1::AuthTokenControllerTest < ActionDispatch::IntegrationTest
 
     # セッションキーを設定
     @session_key = UserAuth.session_key.to_s
-
-    # アクセストークンのキーを設定
-    @access_token_key = "token"
-  end
-
-  # tokenのリフレッシュを行うapi
-  def refresh_api
-    post api("/auth_token/refresh"), xhr: true
   end
 
   # 無効なリクエストで返ってくるレスポンスチェック
@@ -35,13 +27,15 @@ class Api::V1::AuthTokenControllerTest < ActionDispatch::IntegrationTest
     @user.reload
     assert_nil @user.refresh_jti
     assert_not response.body.present? if error_msg.nil?
-    assert_equal error_msg, res_body["error"] if !error_msg.nil?
+    assert_equal error_msg, response.parsed_body["error"] if !error_msg.nil?
   end
 
-  # 有効なログイン
-  test "valid_login_from_create_action" do
-    login(@params)
+  test "POST #create ログインフォームからメールアドレスとパスワードでログインができる" do
+    # メールアドレスとパスワードを、XHRリクエストで送信してステータスコードが200であることを確認する
+    post api_v1_auth_token_index_url, xhr: true, params: @params
     assert_response 200
+
+    # 
     access_lifetime_to_i = @access_lifetime.from_now.to_i
     refresh_lifetime_to_i = @refresh_lifetime.from_now.to_i
 
@@ -50,22 +44,22 @@ class Api::V1::AuthTokenControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil @user.refresh_jti
 
     # レスポンスユーザーは正しいか
-    assert_equal @user.id, res_body["user"]["id"]
+    assert_equal @user.id, response.parsed_body["user"]["id"]
 
     # レスポンス有効期限は想定通りか(1誤差許容)
     assert_in_delta access_lifetime_to_i,
-                    res_body["expires"],
+                    response.parsed_body["expires"],
                     1
 
     ## access_token
-    access_token = User.decode_access_token(res_body[@access_token_key])
+    access_token = User.decode_access_token(response.parsed_body["token"])
 
     # ユーザーはログイン本人と一致しているか
     assert_equal @user, access_token.entity_for_user
 
     # 有効期限はレスポンスと一致しているか
     token_exp = access_token.payload["exp"]
-    assert_equal res_body["expires"], token_exp
+    assert_equal response.parsed_body["expires"], token_exp
 
     ## cookie
     # cookieのオプションを取得する場合は下記を使用
@@ -85,8 +79,7 @@ class Api::V1::AuthTokenControllerTest < ActionDispatch::IntegrationTest
     assert cookie[:http_only]
 
     ## refresh_token
-    token_from_cookies = cookies[@session_key]
-    refresh_token = User.decode_refresh_token(token_from_cookies)
+    refresh_token = User.decode_refresh_token(cookies[@session_key])
     @user.reload
 
     # ログイン本人と一致しているか
@@ -100,33 +93,33 @@ class Api::V1::AuthTokenControllerTest < ActionDispatch::IntegrationTest
   end
 
   # 無効なログイン
-  test "invalid_login_from_create_action" do
+  test "POST #create ログインフォームでパスワードが間違っている場合はログインできない" do
     # 不正なユーザーの場合
     pass = "password"
     invalid_params = { auth: { email: @user.email, password: pass + "a" } }
 
-    login(invalid_params)
+    post api_v1_auth_token_index_url, xhr: true, params: invalid_params
     response_check_of_invalid_request 404
 
     # アクティブユーザーでない場合
     inactive_user = User.create(name: "a", email: "b@b.b", password: pass)
     invalid_params = { auth: { email: inactive_user.email, password: pass } }
     assert_not inactive_user.activated
-    login(invalid_params)
+    post api_v1_auth_token_index_url, xhr: true, params: invalid_params
     response_check_of_invalid_request 404
 
     # Ajax通信ではない場合
-    post api("/auth_token"), xhr: false, params: @params
+    post api_v1_auth_token_index_url, xhr: false, params: @params
     response_check_of_invalid_request 403, "Forbidden"
   end
 
   # 有効なリフレッシュ
-  test "valid_refresh_from_refresh_action" do
+  test "POST #refresh ログインした後に有効なリフレッシュトークンをユーザーにセットし、cookieに保存されている" do
     # 有効なログイン
-    login(@params)
+    post api_v1_auth_token_index_url, xhr: true, params: @params
     assert_response 200
     @user.reload
-    old_access_token = res_body[@access_token_key]
+    old_access_token = response.parsed_body["token"]
     old_refresh_token = cookies[@session_key]
     old_user_jti = @user.refresh_jti
 
@@ -138,10 +131,10 @@ class Api::V1::AuthTokenControllerTest < ActionDispatch::IntegrationTest
     travel 10.second
 
     # refreshアクションにアクセス
-    refresh_api
+    post refresh_api_v1_auth_token_index_url, xhr: true
     assert_response 200
     @user.reload
-    new_access_token = res_body[@access_token_key]
+    new_access_token = response.parsed_body["token"]
     new_refresh_token = cookies[@session_key]
     new_user_jti = @user.refresh_jti
 
@@ -161,19 +154,19 @@ class Api::V1::AuthTokenControllerTest < ActionDispatch::IntegrationTest
   end
 
   # 無効なリフレッシュ
-  test "invalid_refresh_from_refresh_action" do
+  test "POST #refresh 無効なリフレッシュトークンの挙動と、未ログイン時にリフレッシュトークンが取得できない" do
     # refresh_tokenが存在しない場合はアクセスできないか
-    refresh_api
+    post refresh_api_v1_auth_token_index_url, xhr: true
     response_check_of_invalid_request 401
 
     ## ユーザーが2回のログインを行なった場合
     # 1つ目のブラウザでログイン
-    login(@params)
+    post api_v1_auth_token_index_url, xhr: true, params: @params
     assert_response 200
     old_refresh_token = cookies[@session_key]
 
     # 2つ目のブラウザでログイン
-    login(@params)
+    post api_v1_auth_token_index_url, xhr: true, params: @params
     assert_response 200
     new_refresh_token = cookies[@session_key]
 
@@ -182,27 +175,27 @@ class Api::V1::AuthTokenControllerTest < ActionDispatch::IntegrationTest
     assert_not cookies[@session_key].blank?
 
     # 1つ目のブラウザ(古いrefresh_token)でアクセスするとエラーを吐いているか
-    refresh_api
+    post refresh_api_v1_auth_token_index_url, xhr: true
     assert_response 401
 
     # cookieは削除されているか
     assert cookies[@session_key].blank?
 
     # jtiエラーはカスタムメッセージを吐いているか
-    assert_equal "Invalid jti for refresh token", res_body["error"]
+    assert_equal "Invalid jti for refresh token", response.parsed_body["error"]
 
     # 有効期限後はアクセスできないか
     travel_to (@refresh_lifetime.from_now) do
-      refresh_api
+      post refresh_api_v1_auth_token_index_url, xhr: true
       assert_response 401
       assert_not response.body.present?
     end
   end
 
   # ログアウト
-  test "destroy_action" do
-    # 有効なログイン
-    login(@params)
+  test "DELETE #destroy ログアウトできる" do
+    # まずばログインしておく
+    post api_v1_auth_token_index_url, xhr: true, params: @params
     assert_response 200
     @user.reload
     assert_not_nil @user.refresh_jti
@@ -210,7 +203,7 @@ class Api::V1::AuthTokenControllerTest < ActionDispatch::IntegrationTest
 
     # 有効なログアウト
     assert_not cookies[@session_key].blank?
-    logout
+    delete api_v1_auth_token_index_url, xhr: true
     assert_response 200
 
     # cookieは削除されているか
@@ -222,17 +215,17 @@ class Api::V1::AuthTokenControllerTest < ActionDispatch::IntegrationTest
 
     # sessionがない状態でログアウトしたらエラーは返ってくるか
     cookies[@session_key] = nil
-    logout
+    delete api_v1_auth_token_index_url, xhr: true
     response_check_of_invalid_request 401
 
     # 有効なログイン
-    login(@params)
+    post api_v1_auth_token_index_url, xhr: true, params: @params
     assert_response 200
     assert_not cookies[@session_key].blank?
 
     # session有効期限後にログアウトしたらエラーは返ってくるか
     travel_to (@refresh_lifetime.from_now) do
-      logout
+      delete api_v1_auth_token_index_url, xhr: true
       assert_response 401
       # cookieは削除されているか
       assert cookies[@session_key].blank?
