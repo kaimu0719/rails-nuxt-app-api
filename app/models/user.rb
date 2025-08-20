@@ -1,4 +1,5 @@
 class User < ApplicationRecord
+  include TokenGenerateService
   # gem bcrypt
   # 1. パスワードをハッシュ化して暗号化する
   # 2. password_digestをpasswordに設定する
@@ -24,4 +25,19 @@ class User < ApplicationRecord
   validates :password,
             length: { minimum: 8 }, # パスワードの最小文字数は8文字
             allow_nil: true # nilの場合はバリデーションをスキップ
+  
+  # リフレッシュトークンのJWT IDを記憶する
+  def remember(jti)
+    update!(refresh_jti: jti)
+  end
+
+  # リフレッシュトークンのJWT IDを削除する
+  def forget
+    update!(refresh_jti: nil)
+  end
+
+  # JSONレスポンスのシリアライザ
+  def response_json(payload = {})
+    as_json(only: [:id, :name]).merge(payload).with_indifferent_access
+  end
 end

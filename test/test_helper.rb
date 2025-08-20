@@ -11,5 +11,10 @@ module ActiveSupport
     fixtures :all
 
     # Add more helper methods to be used by all tests here...
+
+    # アクティブなユーザーを返す
+    def active_user
+      User.create!(name: "Kaimu", email: "kaimu@a.com", password: "password", activated: true)
+    end
   end
 end

@@ -25,6 +25,9 @@ module App
     # config/locales/ja.ymlが読み込まれるようにする。
     config.i18n.default_locale = :ja
 
+    # Cookieを処理するmiddlewareを追加
+    config.middleware.use ActionDispatch::Cookies
+
     # Only loads a smaller set of middleware suitable for API only apps.
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
