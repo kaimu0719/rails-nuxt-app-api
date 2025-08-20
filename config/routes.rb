@@ -12,6 +12,8 @@ Rails.application.routes.draw do
           delete :destroy
         end
       end
+
+      resources :projects, only: [:index]
     end
   end
 end

@@ -24,16 +24,11 @@ module UserSessionizeService
 
   private
 
-    # cookieのtokenを取得
-    def token_from_cookies
-      cookies[session_key]
-    end
-
     # refresh_tokenから有効なユーザーを取得する
     def fetch_user_from_refresh_token
       # UserモデルのTokenGenerateServiceモジュールのクラスメソッドを使用して、
       # リフレッシュトークンをデコードし、ユーザーエンティティを取得する
-      User.from_refresh_token(token_from_cookies)
+      User.from_refresh_token(cookies[session_key])
     rescue JWT::InvalidJtiError
       # jtiエラーの場合はcontrollerに処理を委任
       # ここでの処理は、リフレッシュトークンが無効であり、JWT ID (jti)が不正であることを示す
@@ -50,7 +45,7 @@ module UserSessionizeService
     # refresh_tokenのユーザーを返す
     def session_user
       # Cookieからリフレッシュトークンが存在しない場合はnilを返し、未ログインであることを示す。
-      return nil unless token_from_cookies
+      return nil unless cookies[session_key]
 
       # リフレッシュトークンからユーザーを取得し、インスタンス変数にキャッシュする
       @_session_user ||= fetch_user_from_refresh_token

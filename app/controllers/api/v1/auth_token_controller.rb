@@ -19,10 +19,15 @@ class Api::V1::AuthTokenController < ApplicationController
   def create
     # リフレッシュトークンからユーザーを取得
     # 取得できない場合は、authenticateメソッドで404が発生する
-    @user = login_user
+    @user = User.find_by(email: auth_params[:email], activated: true)
 
     # リフレッシュトークンなどをcookieにセットする
-    set_refresh_token_to_cookie
+    cookies[session_key] = {
+      value: refresh_token, # Userモデルのインスタンスから生成されたリフレッシュトークンをセット
+      expires: refresh_token_expiration, # リフレッシュトークンの有効期限をセット
+      secure: Rails.env.production?, # 本番環境ではsecure属性をtrueに設定
+      http_only: true # JavaScriptからアクセスできないようにするため、httpOnly属性をtrueに設定
+    }
 
     # ログイン完了時のレスポンス
     render json: login_response
